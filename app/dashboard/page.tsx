@@ -1,0 +1,11 @@
+import { redirect } from 'next/navigation';
+import { adminDb } from '@/lib/supabase-server';
+import { isAdmin } from '@/lib/auth';
+export const dynamic = 'force-dynamic';
+export default async function Dashboard(){
+ if (!(await isAdmin())) redirect('/login');
+ const db=adminDb(); const {data:events,error}=await db.from('click_events').select('participant_name,occurred_at').order('occurred_at',{ascending:false});
+ if(error) throw new Error(error.message);
+ const agg=new Map<string,{count:number;latest:string}>(); (events||[]).forEach(e=>{const v=agg.get(e.participant_name);if(v)v.count++;else agg.set(e.participant_name,{count:1,latest:e.occurred_at});});
+ const rows=[...agg.entries()].sort((a,b)=>b[1].latest.localeCompare(a[1].latest)); const total=(events||[]).length;
+ return <main className="shell"><header style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><div><h1>Simulation Dashboard</h1><p className="muted">Link-activation events · authorized campaigns</p></div><form action="/auth/signout" method="post"><button className="btn">Sign out</button></form></header><div className="stats"><div className="stat"><span className="muted">Participants</span><strong>{rows.length}</strong></div><div className="stat"><span className="muted">Total opens</span><strong>{total}</strong></div><div className="stat"><span className="muted">Latest activity</span><strong style={{fontSize:18}}>{total?new Date(events![0].occurred_at).toLocaleString():'—'}</strong></div></div><section className="panel"><h2>Participant activity</h2><div style={{overflowX:'auto'}}><table className="table"><thead><tr><th>SL No</th><th>Name</th><th>Status</th><th>Count</th><th>Timestamp</th></tr></thead><tbody>{rows.length?rows.map(([name,v],i)=><tr key={name}><td>{i+1}</td><td>{name}</td><td><span style={{color:'#0f766e',fontWeight:600}}>Opened</span></td><td>{v.count}</td><td>{new Date(v.latest).toLocaleString()}</td></tr>):<tr><td colSpan={5} className="muted">No events recorded yet.</td></tr>}</tbody></table></div></section><p className="muted" style={{fontSize:12,marginTop:20}}>This dashboard reports link activations only; it does not prove that a message was read.</p></main>}

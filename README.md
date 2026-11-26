@@ -1,27 +1,50 @@
-# Authorized Awareness Simulation (Vercel)
+# Awareness Simulation Dashboard (Vercel + Supabase)
 
-This starter logs a participant's **confirmed participation** in a controlled awareness exercise. It does not silently record clicks or collect passwords/cookies.
+This app is intended for an **authorized, disclosed security-awareness simulation**. It records a named link activation and redirects to Outlook. It records no IP address, device fingerprint, credentials, or other personal telemetry. A link activation is not proof that a message was read.
 
-## Google Sheet
-Create `Sheet1` with columns: `ID | Participant | Status | Clicked At`, and rows such as `p001 | Madhu | Not Opened |`.
+## Features
+- `/track/<name>` logs a named link activation and redirects to `https://outlook.com`
+- Admin login with Supabase Auth
+- Dashboard: SL No, Name, Status, Count, Timestamp
+- Hosted on Vercel
 
-## Apps Script
-1. Extensions > Apps Script; paste `GoogleAppsScript.gs`.
-2. Replace `SHARED_SECRET` with a long random secret matching `SHEETS_SHARED_SECRET` in Vercel.
-3. Deploy as Web App, execute as you, configure access for your controlled exercise, and copy the URL.
+## 1. Supabase
+1. Create a project at https://supabase.com.
+2. In SQL Editor, run `supabase/schema.sql`.
+3. In Authentication, create the admin user (or enable only the sign-in method you intend to use).
+4. Copy Project URL, anon/public key, and service-role key from Project Settings > API.
 
-## Vercel configuration
-Import into Vercel and set:
-- `SHEETS_WEBHOOK_URL`: Apps Script `/exec` URL
-- `SHEETS_SHARED_SECRET`: secret shared with Apps Script
-- `DASHBOARD_KEY`: separate strong dashboard password
-- `PARTICIPANTS_JSON`: JSON mapping IDs to names, e.g. `{"p001":"Madhu","p002":"Ram"}`
+## 2. Configure environment variables
+Copy `.env.example` to `.env.local` and fill in:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (keep private; never expose to client)
 
-Redeploy after setting environment variables.
+## 3. Run locally
+```bash
+npm install
+npm run dev
+```
+Open http://localhost:3000/login. Tracking example: http://localhost:3000/track/madhu
 
-## Routes
-- `/click/Madhu` — participant page; event is recorded only after the visible confirmation button is pressed.
-- `/click/Ram` — same for Ram (name slug matching).
-- `/dashboard` — admin dashboard.
+## 4. Deploy on Vercel
+1. Push the project to a GitHub repository.
+2. Import the repo in https://vercel.com/new.
+3. Add the same environment variables in Project Settings > Environment Variables.
+4. Deploy.
+5. Add the production URL to Supabase Auth > URL Configuration (Site URL and redirect URLs as appropriate).
 
-Use only with participants who are authorized for the exercise. Names with duplicate slug values should be avoided.
+## Link format
+`https://YOUR-APP.vercel.app/track/madhu`
+
+## Privacy / safeguards
+- Use only for an authorized campaign with an appropriate participant notice and scope.
+- Do not use the link to collect passwords, authentication tokens, or sensitive data.
+- Keep dashboard access restricted to approved administrators.
+- Define retention and delete campaign event data when the campaign ends.
+
+### Static admin login configuration
+
+Set `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and a long random `ADMIN_SESSION_SECRET` in `.env.local` and Vercel Environment Variables. Credentials are checked server-side and a signed, HttpOnly session cookie is issued. Do not commit secrets.
+
+Supabase environment variables use the new publishable/secret key names: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY`. The publishable key is not used for admin database access; keep the secret key server-only.
