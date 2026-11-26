@@ -1,0 +1,1 @@
+export default function Home(){return <main className="card"><h1>Security Awareness Simulation</h1><p>This app is for an authorized internal awareness exercise using assigned participant IDs.</p><p>Participant test links use the format:</p><code>/click?id=p001</code><p><a href="/dashboard">Open campaign dashboard</a></p></main>}
